@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.aegis/
+.env
+*.log
+.DS_Store
+test-ledger/
+test-program/target/
+test-program/.anchor/
+test-program/node_modules/

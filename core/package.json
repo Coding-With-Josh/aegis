@@ -1,0 +1,49 @@
+{
+  "name": "aegis",
+  "version": "1.0.0",
+  "description": "Secure Autonomous Wallet Infrastructure for AI Agents on Solana",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "aegis": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "cli": "node dist/cli.js",
+    "create-wallets": "node dist/cli.js create-wallets",
+    "airdrop": "node dist/cli.js airdrop",
+    "run": "node dist/cli.js run",
+    "balance": "node dist/cli.js balance",
+    "program-id": "node dist/cli.js program-id",
+    "init-test-program": "node dist/cli.js init-test-program",
+    "init-trades": "node dist/cli.js init-trades",
+    "spl-setup": "node dist/cli.js spl-setup",
+    "spl-transfer": "node dist/cli.js spl-transfer",
+    "config-agent": "node dist/cli.js config-agent",
+    "close-wallets": "node dist/cli.js close-wallets",
+    "llm-run": "node dist/cli.js llm-run",
+    "llm-run-once": "node dist/cli.js llm-run --once",
+    "serve": "node dist/cli.js serve",
+    "demo": "node dist/cli.js run --agents 3 --rounds 2 && node dist/cli.js balance",
+    "deploy-test-program": "cd test-program && anchor build && anchor deploy --provider.cluster devnet"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@solana/spl-token": "^0.4.0",
+    "@solana/web3.js": "^1.95.0",
+    "@types/express": "^5.0.6",
+    "commander": "^12.0.0",
+    "dotenv": "^16.4.0",
+    "express": "^5.2.1",
+    "groq-sdk": "^0.37.0",
+    "openai": "^6.22.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

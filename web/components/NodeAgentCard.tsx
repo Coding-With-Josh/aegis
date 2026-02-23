@@ -96,7 +96,7 @@ export default function NodeAgentCard({ agent, selected, onClick }: Props) {
         <div className="rounded-lg bg-muted/50 border border-border/50 px-3 py-2">
           <div className="text-[10px] text-muted-foreground mb-0.5">spent today</div>
           <div className="text-[13px] font-bold text-foreground font-mono">
-            {agent.dailySpend.sol.toFixed(4)}
+            {(agent.dailySpend?.sol ?? 0).toFixed(4)}
             <span className="text-[10px] font-normal text-muted-foreground ml-1">SOL</span>
           </div>
         </div>

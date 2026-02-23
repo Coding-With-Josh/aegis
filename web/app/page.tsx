@@ -181,7 +181,7 @@ export default function Dashboard() {
                   />
                   <StatCard
                     label="Spent Today"
-                    value={nodeAgents.reduce((s, a) => s + a.dailySpend.sol, 0).toFixed(4)}
+                    value={nodeAgents.reduce((s, a) => s + (a.dailySpend?.sol ?? 0), 0).toFixed(4)}
                     sub="SOL across all agents"
                   />
                   <StatCard

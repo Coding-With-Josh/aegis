@@ -3,7 +3,7 @@ services:
     name: aegis-node
     runtime: node
     rootDir: node
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npx tsc
     startCommand: node dist/server.js
     envVars:
       - key: PORT

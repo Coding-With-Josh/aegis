@@ -50,7 +50,6 @@ You must respond with a single JSON object and nothing else:
 }`;
 }
 
-// keep in sync with the constant in base-llm-agent.ts
 const MIN_BALANCE_LAMPORTS = 10_000_000;
 
 export function buildUserPrompt(ctx: PromptContext): string {

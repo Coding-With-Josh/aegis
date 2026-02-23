@@ -39,7 +39,6 @@ export class MockProvider implements LLMProvider {
     const resp = { ...MOCK_RESPONSES[mockIdx % MOCK_RESPONSES.length] };
     mockIdx++;
 
-    // pull the first peer address out of the prompt so the transfer has a target
     if (resp.action === "transfer" && resp.to === null) {
       const match = userPrompt.match(/peer_\d+: ([A-Za-z0-9]{32,44})/);
       if (match) {

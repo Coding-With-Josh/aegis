@@ -9,7 +9,6 @@ import { readHistory } from "../../memory/store.js";
 import { logInfo, logWarn, logDebug } from "../../logger.js";
 import { AEGIS_TEST_PROGRAM_ID, buildTradeIntent } from "../../test-program-client.js";
 
-// 0.01 SOL floor so the wallet can always cover fees
 const MIN_BALANCE_LAMPORTS = 10_000_000;
 
 export interface LLMAgentOpts {

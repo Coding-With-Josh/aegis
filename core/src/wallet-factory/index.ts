@@ -8,7 +8,6 @@ const DEFAULT_META_DIR = ".aegis/meta";
 const AIRDROP_AMT = 2.5 * LAMPORTS_PER_SOL;
 const AIRDROP_RETRIES = 5;
 const AIRDROP_RETRY_DELAY_MS = 8000;
-// devnet allows roughly one airdrop per 10s per ip, 12s keeps us safe
 const AIRDROP_BETWEEN_AGENTS_MS = 12000;
 
 export async function createWallets(

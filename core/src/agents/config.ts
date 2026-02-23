@@ -5,9 +5,7 @@ export type AgentStrategy = "trader" | "liquidity" | "conservative" | "defiTrade
 
 export interface AgentConfig {
   strategy?: AgentStrategy;
-  // max lamports per transfer for this agent (overrides global MAX_TRANSFER_LAMPORTS)
   maxLamports?: number;
-  // extra rounds this agent runs (not used by harness directly, informational)
   rounds?: number;
 }
 

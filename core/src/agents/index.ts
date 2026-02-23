@@ -35,7 +35,6 @@ export function peerPubkeysFromMeta(meta: { agentId: string; publicKey: string }
   return m;
 }
 
-// class-based agent registry keyed by strategy name
 export const AGENT_CLASSES = {
   trader: TraderAgentClass,
   liquidity: LiquidityAgentClass,

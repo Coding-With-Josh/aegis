@@ -29,7 +29,6 @@ function conn(): Connection {
   return new Connection(RPC);
 }
 
-// functional agent map for fallback (no per-agent config)
 const FUNCTIONAL_AGENTS = [TraderAgent, LiquidityAgent, ConservativeAgent, DeFiTraderAgent] as const;
 
 const STRATEGY_MAP: Record<AgentStrategy, typeof FUNCTIONAL_AGENTS[number]> = {
@@ -143,7 +142,6 @@ program
       }
     }
 
-    // drain SOL from each agent into drainPubkey (if provided)
     if (drainPubkey) {
       for (const { agentId, publicKey } of meta) {
         if (!keypairExists(agentId, KEYSTORE_DIR)) {
@@ -153,7 +151,6 @@ program
         try {
           const pk = new PublicKey(publicKey);
           const balance = await c.getBalance(pk);
-          // reserve ~5000 lamports for the transfer fee
           const FEE_RESERVE = 5000;
           const sendLamports = balance - FEE_RESERVE;
           if (sendLamports <= 0) {
@@ -172,7 +169,6 @@ program
       }
     }
 
-    // wipe .aegis/ subdirectories
     const dirs = [KEYSTORE_DIR, META_DIR, ".aegis/memory", ".aegis/config"];
     for (const dir of dirs) {
       try {
@@ -209,7 +205,6 @@ program
     const allowedPrograms = buildDefaultAllowedPrograms(AEGIS_TEST_PROGRAM_ID);
     const c = conn();
 
-    // load per-agent configs once
     const agentConfigs: Record<string, import("./agents/config.js").AgentConfig> = Object.fromEntries(
       await Promise.all(meta.map(async (m) => [m.agentId, await loadAgentConfig(m.agentId, CONFIG_DIR)]))
     );
@@ -223,14 +218,12 @@ program
           continue;
         }
 
-        // pick strategy: per-agent config overrides default rotation
         const cfg = agentConfigs[agentId] ?? {};
         const strategyName = cfg.strategy;
         const AgentFn = strategyName
           ? STRATEGY_MAP[strategyName]
           : FUNCTIONAL_AGENTS[i % FUNCTIONAL_AGENTS.length];
 
-        // per-agent maxLamports override
         const perAgentMax = cfg.maxLamports;
         const effectiveAllowedPrograms = buildDefaultAllowedPrograms(AEGIS_TEST_PROGRAM_ID);
         const policy = defaultPolicy(allowedRecipients, effectiveAllowedPrograms);
@@ -271,13 +264,10 @@ program
           }
         }
 
-        // show balance after this agent's turn
         try {
           const bal = await c.getBalance(new PublicKey(publicKey));
           logInfo("balance", { agentId, sol: (bal / 1e9).toFixed(4) });
-        } catch {
-          // non-fatal
-        }
+        } catch { /* non-fatal */ }
       }
     }
     logInfo("simulation complete", { rounds: opts.rounds, agents: meta.length });
@@ -296,7 +286,6 @@ program
       const sol = await c.getBalance(pk);
       logInfo("balance", { agentId, publicKey, sol: (sol / 1e9).toFixed(4) + " SOL" });
 
-      // SPL token balances
       try {
         const tokenAccounts = await c.getParsedTokenAccountsByOwner(pk, { programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") });
         for (const { account } of tokenAccounts.value) {
@@ -307,9 +296,7 @@ program
           const label = mintB58 && mint === mintB58 ? " (aegis-test)" : "";
           logInfo("token balance", { agentId, mint: mint.slice(0, 8) + "..." + label, amount });
         }
-      } catch {
-        // no token accounts or RPC error – skip
-      }
+      } catch { /* no token accounts or rpc error */ }
     }
   });
 

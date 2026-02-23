@@ -18,7 +18,6 @@ export function buildLLMRegistry(
     (id) => new ExperimentalAgent({ agentId: id, memoryDir }),
   ];
 
-  // cycles sentinel, trader, experimental, sentinel, ... for any number of agents
   return agentIds.map((id, i) => ({
     agentId: id,
     agent: factories[i % factories.length](id),

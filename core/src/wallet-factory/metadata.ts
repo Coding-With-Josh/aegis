@@ -16,9 +16,7 @@ export async function saveMetadata(agentId: string, publicKey: PublicKey, metaDi
   try {
     const raw = await readFile(path, "utf-8");
     list = JSON.parse(raw);
-  } catch {
-    // new file
-  }
+  } catch { /* new file */ }
   const idx = list.findIndex((m) => m.agentId === agentId);
   const entry: AgentMeta = { agentId, publicKey: publicKey.toBase58() };
   if (idx >= 0) list[idx] = entry;

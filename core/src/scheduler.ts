@@ -171,14 +171,13 @@ export async function startScheduler(opts: SchedulerOptions = {}): Promise<void>
     const allowedPrograms = buildDefaultAllowedPrograms(AEGIS_TEST_PROGRAM_ID);
     const basePolicy = defaultPolicy(allowedRecipients, allowedPrograms);
 
-    // check if the trades PDA exists so agents know whether callProgram is safe
     let programReady = false;
     if (AEGIS_TEST_PROGRAM_ID) {
       try {
         const pdaInfo = await c.getAccountInfo(tradesPda(AEGIS_TEST_PROGRAM_ID));
         programReady = pdaInfo !== null;
       } catch {
-        // rpc hiccup, just leave it false
+        /* rpc hiccup */
       }
     }
 

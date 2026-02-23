@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { fetchState, fetchNodeAgents } from "@/lib/api";
 import { loadConfig, saveConfig, PRESETS, type PresetKey, type ConnectionConfig } from "@/lib/config";
 import type { ApiState, NodeAgentState } from "@/lib/types";
@@ -8,11 +9,12 @@ import Sidebar from "@/components/Sidebar";
 import StatCard from "@/components/StatCard";
 import AgentCard from "@/components/AgentCard";
 import NodeAgentCard from "@/components/NodeAgentCard";
-import ActivityChart from "@/components/ActivityChart";
 import DecisionFeed from "@/components/DecisionFeed";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+
+const ActivityChart = dynamic(() => import("@/components/ActivityChart"), { ssr: false });
 
 const POLL_MS = 8000;
 

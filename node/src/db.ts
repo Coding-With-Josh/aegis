@@ -11,6 +11,7 @@ export function getDb(): Database.Database {
     _db.pragma("journal_mode = WAL");
     _db.pragma("foreign_keys = ON");
     initSchema(_db);
+    runMigrations(_db);
   }
   return _db;
 }
@@ -50,6 +51,18 @@ function initSchema(db: Database.Database): void {
   `);
 }
 
+function runMigrations(db: Database.Database): void {
+  const cols = db.pragma("table_info(agents)") as { name: string }[];
+  const colNames = new Set(cols.map((c) => c.name));
+
+  if (!colNames.has("last_activity_at")) {
+    db.exec("ALTER TABLE agents ADD COLUMN last_activity_at TEXT");
+  }
+  if (!colNames.has("reputation_score")) {
+    db.exec("ALTER TABLE agents ADD COLUMN reputation_score REAL NOT NULL DEFAULT 1.0");
+  }
+}
+
 export interface AgentRow {
   id: string;
   public_key: string;
@@ -58,6 +71,8 @@ export interface AgentRow {
   policy_json: string;
   status: string;
   created_at: string;
+  last_activity_at: string | null;
+  reputation_score: number;
 }
 
 export interface TransactionRow {
@@ -80,7 +95,7 @@ export interface SpendRow {
   total_spent_usdc: number;
 }
 
-export function insertAgent(row: AgentRow): void {
+export function insertAgent(row: Omit<AgentRow, "last_activity_at" | "reputation_score">): void {
   getDb()
     .prepare(
       `INSERT INTO agents (id, public_key, encrypted_private_key, api_key_hash, policy_json, status, created_at)
@@ -99,6 +114,24 @@ export function getAllAgents(): AgentRow[] {
   return getDb()
     .prepare("SELECT * FROM agents ORDER BY created_at DESC")
     .all() as AgentRow[];
+}
+
+export function updateAgentStatus(id: string, status: string): void {
+  getDb()
+    .prepare("UPDATE agents SET status = ? WHERE id = ?")
+    .run(status, id);
+}
+
+export function updateAgentActivity(id: string): void {
+  getDb()
+    .prepare("UPDATE agents SET last_activity_at = ? WHERE id = ?")
+    .run(new Date().toISOString(), id);
+}
+
+export function updateReputation(id: string, delta: number): void {
+  getDb()
+    .prepare("UPDATE agents SET reputation_score = MAX(0, MIN(10, reputation_score + ?)) WHERE id = ?")
+    .run(delta, id);
 }
 
 export function insertTransaction(row: TransactionRow): void {

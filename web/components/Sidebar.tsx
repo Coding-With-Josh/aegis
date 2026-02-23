@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ConnectionSwitcher from "@/components/ConnectionSwitcher";
@@ -51,11 +52,10 @@ export default function Sidebar({ agents, nodeAgentCount, selected, onSelect, vi
     <aside className="w-[224px] min-w-[224px] h-screen flex flex-col bg-sidebar border-r border-sidebar-border">
       {/* logo */}
       <div className="flex items-center gap-3 px-4 h-14 shrink-0">
-        <div
-          className="w-8 h-8 rounded-xl flex items-center justify-center text-[13px] font-black shrink-0 select-none"
-          style={{ background: "linear-gradient(135deg, #00C4AA 0%, #00a08a 100%)", color: "#000", boxShadow: "0 0 16px rgba(0,196,170,0.25)" }}
+        <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 flex items-center justify-center bg-black"
+          style={{ boxShadow: "0 0 16px rgba(0,196,170,0.2)" }}
         >
-          A
+          <Image src="/logo.png" alt="Aegis" width={32} height={32} className="w-full h-full object-contain" priority />
         </div>
         <div>
           <div className="text-[13px] font-bold tracking-tight text-foreground leading-none">Aegis</div>

@@ -1,4 +1,4 @@
-import { Connection, Transaction, VersionedTransaction, PublicKey } from "@solana/web3.js";
+import { VersionedTransaction, PublicKey } from "@solana/web3.js";
 import { z } from "zod";
 import type { IntentHandler, ImpactEstimate } from "./base.js";
 import type { AgentRow } from "../db.js";
@@ -42,13 +42,16 @@ export class SwapIntentHandler implements IntentHandler {
     const p = SwapParamsSchema.parse(params);
     const fromMintResolved = resolveMint(p.fromMint);
     const isFromSol = fromMintResolved === SOL_MINT;
+    const slippageRisk = Math.min(p.slippageBps / 100, 20);
+    const amountRisk = Math.min(p.amount * 5, 30);
     return {
       amountSOL: isFromSol ? p.amount : 0,
       mint: p.fromMint,
+      riskScore: Math.round(20 + slippageRisk + amountRisk),
     };
   }
 
-  async buildTransaction(agent: AgentRow, _connection: Connection): Promise<Transaction> {
+  async buildTransaction(agent: AgentRow, _connection: never): Promise<VersionedTransaction> {
     const keypair = getKeypairForAgent(agent.encrypted_private_key);
     const fromMint = resolveMint(this.params.fromMint);
     const toMint = resolveMint(this.params.toMint);
@@ -90,18 +93,11 @@ export class SwapIntentHandler implements IntentHandler {
 
     const swapData = await swapRes.json() as { swapTransaction: string };
     const swapTxBuf = Buffer.from(swapData.swapTransaction, "base64");
-
-    const versioned = VersionedTransaction.deserialize(swapTxBuf);
-
-    const legacyTx = new Transaction();
-    legacyTx.recentBlockhash = versioned.message.recentBlockhash;
-    legacyTx.feePayer = keypair.publicKey;
-
-    (legacyTx as unknown as { _serializedMessage: Buffer })._serializedMessage = swapTxBuf;
-    (legacyTx as unknown as { _versionedTx: VersionedTransaction })._versionedTx = versioned;
-
-    return legacyTx;
+    return VersionedTransaction.deserialize(swapTxBuf);
   }
 }
 
 export { resolveMint };
+
+// suppress unused import warning — PublicKey used by re-exporters
+void PublicKey;

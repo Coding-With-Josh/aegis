@@ -5,7 +5,7 @@ import {
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import { v4 as uuidv4 } from "uuid";
-import { insertTransaction } from "../db.js";
+import { insertTransaction, updateAgentActivity, updateReputation } from "../db.js";
 import { getKeypairForAgent } from "../agents/create.js";
 import { recordSpend } from "../spend/tracker.js";
 import type { AgentRow } from "../db.js";
@@ -21,7 +21,7 @@ export interface ExecutionReceipt {
 
 export async function executeTransaction(
   connection: Connection,
-  tx: Transaction,
+  tx: Transaction | VersionedTransaction,
   agent: AgentRow,
   meta: {
     intentType: string;
@@ -33,14 +33,12 @@ export async function executeTransaction(
 ): Promise<ExecutionReceipt> {
   const keypair = getKeypairForAgent(agent.encrypted_private_key);
 
-  const versionedTx = (tx as unknown as { _versionedTx?: VersionedTransaction })._versionedTx;
-
   let signature: string;
   let slot = 0;
 
-  if (versionedTx) {
-    versionedTx.sign([keypair]);
-    signature = await connection.sendTransaction(versionedTx, { skipPreflight: false });
+  if (tx instanceof VersionedTransaction) {
+    tx.sign([keypair]);
+    signature = await connection.sendTransaction(tx, { skipPreflight: false });
     const confirmation = await connection.confirmTransaction(signature, "confirmed");
     slot = confirmation.context.slot;
   } else {
@@ -70,6 +68,8 @@ export async function executeTransaction(
   });
 
   recordSpend(agent.id, meta.amountSOL, meta.mint);
+  updateAgentActivity(agent.id);
+  updateReputation(agent.id, 0.01);
 
   return { signature, slot, gasUsed, tokenChanges, postBalances };
 }

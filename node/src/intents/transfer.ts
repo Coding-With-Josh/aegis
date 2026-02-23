@@ -23,6 +23,7 @@ const TransferParamsSchema = z.object({
   to: z.string().min(32),
   amount: z.number().positive(),
   mint: z.string().default(SOL_MINT),
+  decimals: z.number().int().min(0).max(18).default(6),
 });
 
 export type TransferParams = z.infer<typeof TransferParamsSchema>;
@@ -46,9 +47,11 @@ export class TransferIntentHandler implements IntentHandler {
 
   estimateImpact(params: unknown): ImpactEstimate {
     const p = TransferParamsSchema.parse(params);
+    const amountRisk = Math.min(p.amount * 10, 30);
     return {
       amountSOL: p.mint === SOL_MINT ? p.amount : 0,
       mint: p.mint,
+      riskScore: Math.round(5 + amountRisk),
     };
   }
 
@@ -95,12 +98,14 @@ export class TransferIntentHandler implements IntentHandler {
           )
         );
       }
+
+      const rawAmount = Math.floor(this.params.amount * Math.pow(10, this.params.decimals));
       tx.add(
         createTransferInstruction(
           sourceAta,
           destAta,
           keypair.publicKey,
-          this.params.amount,
+          rawAmount,
           [],
           TOKEN_PROGRAM_ID
         )

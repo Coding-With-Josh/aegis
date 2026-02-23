@@ -1,16 +1,14 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { Connection } from "@solana/web3.js";
 import { authMiddleware } from "../auth.js";
 import { fetchAgent } from "../agents/fetch.js";
 import { getIntentHandler } from "../intents/registry.js";
 import { PolicyEngine, PolicyError } from "../policy/engine.js";
 import { simulateTransaction } from "../execution/simulate.js";
 import { executeTransaction } from "../execution/execute.js";
-import { insertTransaction } from "../db.js";
+import { insertTransaction, updateReputation } from "../db.js";
+import { getConnection } from "../rpc.js";
 import { v4 as uuidv4 } from "uuid";
-
-const RPC = process.env.RPC_URL ?? "https://api.devnet.solana.com";
 
 const ExecuteBodySchema = z.object({
   intent: z.object({
@@ -41,6 +39,11 @@ export async function executeRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const { row: agent, policy } = agentData;
+
+      if (agent.status !== "active") {
+        return reply.status(403).send({ error: `agent is ${agent.status} and cannot execute intents` });
+      }
+
       const policyEngine = new PolicyEngine(agentId, policy);
 
       let handler;
@@ -64,6 +67,8 @@ export async function executeRoutes(app: FastifyInstance): Promise<void> {
           policyEngine.checkMint(impact.mint),
           policyEngine.checkTxAmount(impact.amountSOL),
           policyEngine.checkDailySpend(impact.amountSOL),
+          policyEngine.checkCooldown(agent.last_activity_at),
+          policyEngine.checkRiskScore(impact.riskScore),
           ...(intent.type === "swap"
             ? [policyEngine.checkSlippage((intent.params as { slippageBps?: number }).slippageBps ?? 50)]
             : []),
@@ -82,12 +87,13 @@ export async function executeRoutes(app: FastifyInstance): Promise<void> {
             status: "rejected_policy",
             created_at: new Date().toISOString(),
           });
+          updateReputation(agentId, -0.05);
           return reply.status(403).send({ error: "policy violation", violations: e.violations });
         }
         return reply.status(500).send({ error: (e as Error).message });
       }
 
-      const connection = new Connection(RPC);
+      const connection = getConnection();
 
       let tx;
       try {
@@ -113,9 +119,31 @@ export async function executeRoutes(app: FastifyInstance): Promise<void> {
               status: "rejected_simulation",
               created_at: new Date().toISOString(),
             });
+            updateReputation(agentId, -0.02);
             return reply.status(400).send({
               error: "simulation failed",
               simulationError: simulation.error,
+              logs: simulation.logs,
+            });
+          }
+
+          if (simulation.riskyEffects) {
+            insertTransaction({
+              id: uuidv4(),
+              agent_id: agentId,
+              intent_type: intent.type,
+              reasoning,
+              signature: null,
+              slot: null,
+              amount: impact.amountSOL,
+              token_mint: impact.mint,
+              status: "rejected_simulation",
+              created_at: new Date().toISOString(),
+            });
+            updateReputation(agentId, -0.02);
+            return reply.status(400).send({
+              error: "simulation flagged risky effects",
+              riskReason: simulation.riskReason,
               logs: simulation.logs,
             });
           }

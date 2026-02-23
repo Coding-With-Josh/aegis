@@ -19,7 +19,7 @@ async function fetchNodeAgent(nodeUrl: string, agentId: string): Promise<NodeAge
     fetch(`${nodeUrl}/agents/${agentId}/balance`, { cache: "no-store" }),
     fetch(`${nodeUrl}/agents/${agentId}/transactions?limit=20`, { cache: "no-store" }),
   ]);
-  const info = await infoRes.json() as { agentId: string; publicKey: string; status: string; createdAt: string; policy: NodeAgentState["policy"] };
+  const info = await infoRes.json() as { agentId: string; publicKey: string; status: string; createdAt: string; lastActivityAt: string | null; reputationScore: number; policy: NodeAgentState["policy"] };
   const bal = await balRes.json() as { balanceSol: number; dailySpend: NodeAgentState["dailySpend"] };
   const txs = await txRes.json() as { transactions: NodeTransaction[] };
   return {
@@ -27,6 +27,8 @@ async function fetchNodeAgent(nodeUrl: string, agentId: string): Promise<NodeAge
     publicKey: info.publicKey,
     status: info.status,
     createdAt: info.createdAt,
+    lastActivityAt: info.lastActivityAt ?? null,
+    reputationScore: info.reputationScore ?? 1.0,
     policy: info.policy,
     balanceSol: bal.balanceSol,
     dailySpend: bal.dailySpend,

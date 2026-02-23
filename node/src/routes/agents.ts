@@ -1,12 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { createAgent } from "../agents/create.js";
-import { getAgentById, getAllAgents, getTransactionsByAgent } from "../db.js";
+import { getAgentById, getAllAgents, getTransactionsByAgent, updateAgentStatus } from "../db.js";
 import { getDailySpend } from "../spend/tracker.js";
+import { authMiddleware } from "../auth.js";
+import { getConnection } from "../rpc.js";
 import type { AgentPolicy } from "../policy/types.js";
-
-const RPC = process.env.RPC_URL ?? "https://api.devnet.solana.com";
 
 const CreateAgentSchema = z.object({
   policy: z
@@ -18,8 +18,13 @@ const CreateAgentSchema = z.object({
       maxSlippageBps: z.number().int().min(0).max(10000).optional(),
       requireSimulation: z.boolean().optional(),
       cooldownMs: z.number().int().min(0).optional(),
+      maxRiskScore: z.number().int().min(0).max(100).optional(),
     })
     .optional(),
+});
+
+const UpdateStatusSchema = z.object({
+  status: z.enum(["active", "paused", "suspended"]),
 });
 
 export async function agentRoutes(app: FastifyInstance): Promise<void> {
@@ -31,6 +36,7 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
         publicKey: a.public_key,
         status: a.status,
         createdAt: a.created_at,
+        reputationScore: a.reputation_score ?? 1.0,
       })),
     });
   });
@@ -63,16 +69,35 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
       publicKey: agent.public_key,
       status: agent.status,
       createdAt: agent.created_at,
+      lastActivityAt: agent.last_activity_at ?? null,
+      reputationScore: agent.reputation_score ?? 1.0,
       policy,
     });
   });
+
+  app.patch<{ Params: { id: string } }>(
+    "/agents/:id/status",
+    { preHandler: authMiddleware },
+    async (request, reply) => {
+      const agent = getAgentById(request.params.id);
+      if (!agent) return reply.status(404).send({ error: "agent not found" });
+
+      const body = UpdateStatusSchema.safeParse(request.body);
+      if (!body.success) {
+        return reply.status(400).send({ error: body.error.issues.map((i) => i.message).join(", ") });
+      }
+
+      updateAgentStatus(agent.id, body.data.status);
+      return reply.send({ agentId: agent.id, status: body.data.status });
+    }
+  );
 
   app.get<{ Params: { id: string } }>("/agents/:id/balance", async (request, reply) => {
     const agent = getAgentById(request.params.id);
     if (!agent) return reply.status(404).send({ error: "agent not found" });
 
     try {
-      const connection = new Connection(RPC);
+      const connection = getConnection();
       const pk = new PublicKey(agent.public_key);
       const lamports = await connection.getBalance(pk, "confirmed");
       const spend = getDailySpend(agent.id);
@@ -100,7 +125,7 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
       }
 
       try {
-        const connection = new Connection(RPC);
+        const connection = getConnection();
         const pk = new PublicKey(agent.public_key);
         const lamports = Math.floor(amount * LAMPORTS_PER_SOL);
         const sig = await connection.requestAirdrop(pk, lamports);

@@ -6,6 +6,7 @@ export interface AgentPolicy {
   maxSlippageBps: number;
   requireSimulation: boolean;
   cooldownMs?: number;
+  maxRiskScore?: number;
 }
 
 export interface PolicyViolation {

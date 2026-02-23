@@ -73,6 +73,18 @@ export class PolicyEngine {
     return null;
   }
 
+  checkRiskScore(riskScore: number): PolicyViolation | null {
+    const max = this.policy.maxRiskScore;
+    if (max === undefined) return null;
+    if (riskScore > max) {
+      return {
+        code: "RISK_SCORE_TOO_HIGH",
+        message: `intent risk score ${riskScore} exceeds maxRiskScore ${max}`,
+      };
+    }
+    return null;
+  }
+
   enforce(violations: (PolicyViolation | null)[]): void {
     const actual = violations.filter((v): v is PolicyViolation => v !== null);
     if (actual.length > 0) {

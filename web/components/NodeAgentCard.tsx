@@ -85,7 +85,7 @@ export default function NodeAgentCard({ agent, selected, onClick }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 mb-3">
+      <div className="grid grid-cols-3 gap-2 mb-3">
         <div className="rounded-lg bg-muted/50 border border-border/50 px-3 py-2">
           <div className="text-[10px] text-muted-foreground mb-0.5">balance</div>
           <div className="text-[13px] font-bold text-foreground font-mono">
@@ -98,6 +98,15 @@ export default function NodeAgentCard({ agent, selected, onClick }: Props) {
           <div className="text-[13px] font-bold text-foreground font-mono">
             {agent.dailySpend.sol.toFixed(4)}
             <span className="text-[10px] font-normal text-muted-foreground ml-1">SOL</span>
+          </div>
+        </div>
+        <div className="rounded-lg bg-muted/50 border border-border/50 px-3 py-2">
+          <div className="text-[10px] text-muted-foreground mb-0.5">reputation</div>
+          <div
+            className="text-[13px] font-bold font-mono"
+            style={{ color: agent.reputationScore >= 1 ? "#00C4AA" : agent.reputationScore >= 0.5 ? "#f59e0b" : "#f04444" }}
+          >
+            {(agent.reputationScore ?? 1).toFixed(2)}
           </div>
         </div>
       </div>
@@ -116,8 +125,24 @@ export default function NodeAgentCard({ agent, selected, onClick }: Props) {
           <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/50">
             {agent.policy.dailySpendLimitSOL} SOL/day
           </span>
+          {agent.policy.maxRiskScore !== undefined && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              risk ≤ {agent.policy.maxRiskScore}
+            </span>
+          )}
+          {agent.policy.cooldownMs !== undefined && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/50">
+              {agent.policy.cooldownMs / 1000}s cooldown
+            </span>
+          )}
         </div>
       </div>
+
+      {agent.lastActivityAt && (
+        <div className="text-[10px] text-muted-foreground/60 mb-3">
+          last active {new Date(agent.lastActivityAt).toLocaleString()}
+        </div>
+      )}
 
       {selected && agent.recentTxs.length > 0 && (
         <div>

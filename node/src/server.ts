@@ -4,6 +4,7 @@ import cors from "@fastify/cors";
 import { agentRoutes } from "./routes/agents.js";
 import { executeRoutes } from "./routes/execute.js";
 import { getDb } from "./db.js";
+import { getRpcEndpointHost } from "./rpc.js";
 
 const PORT = parseInt(process.env.PORT ?? "4000", 10);
 const HOST = process.env.HOST ?? "0.0.0.0";
@@ -15,6 +16,7 @@ await app.register(cors, { origin: "*" });
 app.get("/health", async () => ({
   status: "ok",
   ts: new Date().toISOString(),
+  rpcEndpoint: getRpcEndpointHost(),
 }));
 
 await app.register(agentRoutes);

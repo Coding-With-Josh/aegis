@@ -1,7 +1,7 @@
 import { Keypair } from "@solana/web3.js";
 import { randomBytes, createCipheriv, createDecipheriv, scryptSync } from "node:crypto";
 import { v4 as uuidv4 } from "uuid";
-import { insertAgent, type AgentRow } from "../db.js";
+import { insertAgent } from "../db.js";
 import { generateApiKey, hashApiKey } from "../auth.js";
 import type { AgentPolicy } from "../policy/types.js";
 
@@ -66,7 +66,7 @@ export async function createAgent(policy?: Partial<AgentPolicy>): Promise<Create
 
   const mergedPolicy: AgentPolicy = { ...DEFAULT_POLICY, ...policy };
 
-  const row: AgentRow = {
+  insertAgent({
     id: agentId,
     public_key: keypair.publicKey.toBase58(),
     encrypted_private_key: encryptedKey,
@@ -74,9 +74,7 @@ export async function createAgent(policy?: Partial<AgentPolicy>): Promise<Create
     policy_json: JSON.stringify(mergedPolicy),
     status: "active",
     created_at: new Date().toISOString(),
-  };
-
-  insertAgent(row);
+  });
 
   return { agentId, publicKey: keypair.publicKey.toBase58(), apiKey };
 }

@@ -1,0 +1,29 @@
+{
+  "name": "@aegis-ai/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for the Aegis node API — structured intents for autonomous agents",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./intents": {
+      "import": "./dist/intents.js",
+      "types": "./dist/intents.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

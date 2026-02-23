@@ -6,6 +6,7 @@ export interface NodeAgentPolicy {
   maxSlippageBps: number;
   requireSimulation: boolean;
   cooldownMs?: number;
+  maxRiskScore?: number;
 }
 
 export interface NodeTransaction {
@@ -26,6 +27,8 @@ export interface NodeAgentState {
   publicKey: string;
   status: string;
   createdAt: string;
+  lastActivityAt: string | null;
+  reputationScore: number;
   policy: NodeAgentPolicy;
   balanceSol: number;
   dailySpend: { sol: number; usdc: number; date: string };

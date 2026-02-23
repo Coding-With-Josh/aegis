@@ -1,7 +1,7 @@
 {
   "name": "@aegis-ai/sdk",
   "version": "0.1.0",
-  "description": "TypeScript SDK for the Aegis node API — structured intents for autonomous agents",
+  "description": "TypeScript SDK for the Aegis node API — structured intents for autonomous agents on Solana",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,11 +15,35 @@
       "types": "./dist/intents.d.ts"
     }
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
+  "keywords": [
+    "solana",
+    "ai-agents",
+    "autonomous",
+    "wallet",
+    "structured-intents",
+    "defi",
+    "web3"
+  ],
   "license": "MIT",
+  "author": "Aegis",
+  "homepage": "https://github.com/Coding-With-Josh/aegis#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Coding-With-Josh/aegis.git",
+    "directory": "sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/Coding-With-Josh/aegis/issues"
+  },
   "engines": {
     "node": ">=18"
   },

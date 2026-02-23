@@ -2,7 +2,9 @@
 
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ConnectionSwitcher from "@/components/ConnectionSwitcher";
 import type { AgentState } from "@/lib/types";
+import type { ConnectionConfig, PresetKey } from "@/lib/config";
 import { agentColor, agentInitials, cn } from "@/lib/utils";
 
 interface Props {
@@ -12,6 +14,9 @@ interface Props {
   onSelect: (id: string) => void;
   view: "dashboard" | "agents" | "node";
   onViewChange: (v: "dashboard" | "agents" | "node") => void;
+  connectionPreset: PresetKey | "custom";
+  connectionConfig: ConnectionConfig;
+  onConnectionChange: (preset: PresetKey | "custom", config: ConnectionConfig) => void;
 }
 
 const NAV = [
@@ -41,7 +46,7 @@ const NAV = [
   )},
 ];
 
-export default function Sidebar({ agents, nodeAgentCount, selected, onSelect, view, onViewChange }: Props) {
+export default function Sidebar({ agents, nodeAgentCount, selected, onSelect, view, onViewChange, connectionPreset, connectionConfig, onConnectionChange }: Props) {
   return (
     <aside className="w-[224px] min-w-[224px] h-screen flex flex-col bg-sidebar border-r border-sidebar-border">
       {/* logo */}
@@ -150,12 +155,13 @@ export default function Sidebar({ agents, nodeAgentCount, selected, onSelect, vi
       </div>
 
       <div className="h-px bg-sidebar-border shrink-0" />
-      <div className="px-4 py-3 flex items-center gap-2 shrink-0">
-        <div
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ background: "#00C4AA", boxShadow: "0 0 6px rgba(0,196,170,0.7)" }}
+      <div className="pt-2.5">
+        <p className="px-4 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Connection</p>
+        <ConnectionSwitcher
+          preset={connectionPreset}
+          config={connectionConfig}
+          onChange={onConnectionChange}
         />
-        <span className="text-[10px] text-muted-foreground">connected · devnet</span>
       </div>
     </aside>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { fetchState, fetchNodeAgents } from "@/lib/api";
+import { loadConfig, saveConfig, PRESETS, type PresetKey, type ConnectionConfig } from "@/lib/config";
 import type { ApiState, NodeAgentState } from "@/lib/types";
 import Sidebar from "@/components/Sidebar";
 import StatCard from "@/components/StatCard";
@@ -25,9 +26,27 @@ export default function Dashboard() {
   const [view, setView] = useState<"dashboard" | "agents" | "node">("dashboard");
   const [tab, setTab] = useState<"all" | "executed" | "rejected">("all");
 
+  const [connectionPreset, setConnectionPreset] = useState<PresetKey | "custom">("local");
+  const [connectionConfig, setConnectionConfig] = useState<ConnectionConfig>({ ...PRESETS.local });
+
+  useEffect(() => {
+    const saved = loadConfig();
+    setConnectionPreset(saved.preset);
+    setConnectionConfig({ coreUrl: saved.coreUrl, nodeUrl: saved.nodeUrl });
+  }, []);
+
+  function handleConnectionChange(preset: PresetKey | "custom", config: ConnectionConfig) {
+    setConnectionPreset(preset);
+    setConnectionConfig(config);
+    saveConfig({ ...config, preset });
+  }
+
   const load = useCallback(async () => {
     try {
-      const [data, nodeData] = await Promise.all([fetchState(), fetchNodeAgents()]);
+      const [data, nodeData] = await Promise.all([
+        fetchState(connectionConfig.coreUrl),
+        fetchNodeAgents(connectionConfig.nodeUrl),
+      ]);
       setState(data);
       setNodeAgents(nodeData);
       setLastRefresh(new Date());
@@ -35,7 +54,7 @@ export default function Dashboard() {
     } catch (e) {
       setError((e as Error).message);
     }
-  }, []);
+  }, [connectionConfig]);
 
   useEffect(() => {
     load();
@@ -71,6 +90,9 @@ export default function Dashboard() {
           onSelect={(id) => { setSelected((s) => s === id ? null : id); setView("dashboard"); }}
           view={view}
           onViewChange={(v) => { setView(v); setSelected(null); setNodeSelected(null); }}
+          connectionPreset={connectionPreset}
+          connectionConfig={connectionConfig}
+          onConnectionChange={handleConnectionChange}
         />
 
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -78,7 +100,7 @@ export default function Dashboard() {
           <div className="h-13 shrink-0 flex items-center justify-between px-6 border-b border-border bg-card">
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-bold tracking-tight">
-                {selectedAgent ? selectedAgent.agentName : view === "agents" ? "Agents" : "Dashboard"}
+                {selectedAgent ? selectedAgent.agentName : view === "agents" ? "Agents" : view === "node" ? "Node Agents" : "Dashboard"}
               </h1>
               {selectedAgent && (
                 <span className="text-[11px] text-muted-foreground px-2 py-0.5 rounded-md bg-muted border border-border">
@@ -175,7 +197,7 @@ export default function Dashboard() {
                       <p className="text-[12px]">
                         create one with{" "}
                         <code className="text-primary bg-muted px-1.5 py-0.5 rounded-md">
-                          POST http://localhost:4000/agents
+                          POST {connectionConfig.nodeUrl}/agents
                         </code>
                       </p>
                     </div>

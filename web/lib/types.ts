@@ -1,3 +1,37 @@
+export interface NodeAgentPolicy {
+  allowedIntents: string[];
+  allowedMints: string[];
+  maxTxAmountSOL: number;
+  dailySpendLimitSOL: number;
+  maxSlippageBps: number;
+  requireSimulation: boolean;
+  cooldownMs?: number;
+}
+
+export interface NodeTransaction {
+  id: string;
+  agent_id: string;
+  intent_type: string;
+  reasoning: string | null;
+  signature: string | null;
+  slot: number | null;
+  amount: number | null;
+  token_mint: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface NodeAgentState {
+  agentId: string;
+  publicKey: string;
+  status: string;
+  createdAt: string;
+  policy: NodeAgentPolicy;
+  balanceSol: number;
+  dailySpend: { sol: number; usdc: number; date: string };
+  recentTxs: NodeTransaction[];
+}
+
 export interface RiskProfile {
   maxPct: number;
   allowedActions: string[];

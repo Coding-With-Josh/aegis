@@ -7,10 +7,11 @@ import { agentColor, agentInitials, cn } from "@/lib/utils";
 
 interface Props {
   agents: AgentState[];
+  nodeAgentCount: number;
   selected: string | null;
   onSelect: (id: string) => void;
-  view: "dashboard" | "agents";
-  onViewChange: (v: "dashboard" | "agents") => void;
+  view: "dashboard" | "agents" | "node";
+  onViewChange: (v: "dashboard" | "agents" | "node") => void;
 }
 
 const NAV = [
@@ -28,9 +29,19 @@ const NAV = [
       <path d="M1.5 12c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity=".6"/>
     </svg>
   )},
+  { id: "node" as const, label: "Node Agents", icon: (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle cx="7" cy="7" r="2" fill="currentColor" opacity=".9"/>
+      <circle cx="2" cy="3" r="1.5" fill="currentColor" opacity=".5"/>
+      <circle cx="12" cy="3" r="1.5" fill="currentColor" opacity=".5"/>
+      <circle cx="2" cy="11" r="1.5" fill="currentColor" opacity=".5"/>
+      <circle cx="12" cy="11" r="1.5" fill="currentColor" opacity=".5"/>
+      <path d="M3.5 3.5L5.5 5.5M10.5 3.5L8.5 5.5M3.5 10.5L5.5 8.5M10.5 10.5L8.5 8.5" stroke="currentColor" strokeWidth="1" opacity=".4"/>
+    </svg>
+  )},
 ];
 
-export default function Sidebar({ agents, selected, onSelect, view, onViewChange }: Props) {
+export default function Sidebar({ agents, nodeAgentCount, selected, onSelect, view, onViewChange }: Props) {
   return (
     <aside className="w-[224px] min-w-[224px] h-screen flex flex-col bg-sidebar border-r border-sidebar-border">
       {/* logo */}
@@ -70,11 +81,13 @@ export default function Sidebar({ agents, selected, onSelect, view, onViewChange
               </span>
               <span className="flex-1">{item.label}</span>
               {item.id === "agents" && agents.length > 0 && (
-                <Badge
-                  variant="secondary"
-                  className="ml-auto text-[10px] h-4 px-1.5 font-semibold"
-                >
+                <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1.5 font-semibold">
                   {agents.length}
+                </Badge>
+              )}
+              {item.id === "node" && nodeAgentCount > 0 && (
+                <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1.5 font-semibold">
+                  {nodeAgentCount}
                 </Badge>
               )}
             </button>

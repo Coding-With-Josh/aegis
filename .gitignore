@@ -1,2 +1,9 @@
 /.DS_Store
 test-ledger/
+node/node_modules/
+node/dist/
+node/.env
+node/*.db
+node/*.db-shm
+node/*.db-wal
+

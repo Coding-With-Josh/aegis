@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { fetchState } from "@/lib/api";
-import type { ApiState } from "@/lib/types";
+import { fetchState, fetchNodeAgents } from "@/lib/api";
+import type { ApiState, NodeAgentState } from "@/lib/types";
 import Sidebar from "@/components/Sidebar";
 import StatCard from "@/components/StatCard";
 import AgentCard from "@/components/AgentCard";
+import NodeAgentCard from "@/components/NodeAgentCard";
 import ActivityChart from "@/components/ActivityChart";
 import DecisionFeed from "@/components/DecisionFeed";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,16 +17,19 @@ const POLL_MS = 8000;
 
 export default function Dashboard() {
   const [state, setState] = useState<ApiState | null>(null);
+  const [nodeAgents, setNodeAgents] = useState<NodeAgentState[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [view, setView] = useState<"dashboard" | "agents">("dashboard");
+  const [nodeSelected, setNodeSelected] = useState<string | null>(null);
+  const [view, setView] = useState<"dashboard" | "agents" | "node">("dashboard");
   const [tab, setTab] = useState<"all" | "executed" | "rejected">("all");
 
   const load = useCallback(async () => {
     try {
-      const data = await fetchState();
+      const [data, nodeData] = await Promise.all([fetchState(), fetchNodeAgents()]);
       setState(data);
+      setNodeAgents(nodeData);
       setLastRefresh(new Date());
       setError(null);
     } catch (e) {
@@ -62,10 +66,11 @@ export default function Dashboard() {
       <div className="flex w-screen h-screen overflow-hidden bg-background">
         <Sidebar
           agents={agents}
+          nodeAgentCount={nodeAgents.length}
           selected={selected}
           onSelect={(id) => { setSelected((s) => s === id ? null : id); setView("dashboard"); }}
           view={view}
-          onViewChange={(v) => { setView(v); setSelected(null); }}
+          onViewChange={(v) => { setView(v); setSelected(null); setNodeSelected(null); }}
         />
 
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -138,6 +143,62 @@ export default function Dashboard() {
                     />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {view === "node" && (
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="flex gap-3">
+                  <StatCard label="Node Agents" value={nodeAgents.length} sub="managed by @aegis-ai/node" accent />
+                  <StatCard
+                    label="Total SOL"
+                    value={nodeAgents.reduce((s, a) => s + a.balanceSol, 0).toFixed(4)}
+                    sub="across node agents"
+                  />
+                  <StatCard
+                    label="Spent Today"
+                    value={nodeAgents.reduce((s, a) => s + a.dailySpend.sol, 0).toFixed(4)}
+                    sub="SOL across all agents"
+                  />
+                  <StatCard
+                    label="Transactions"
+                    value={nodeAgents.reduce((s, a) => s + a.recentTxs.filter((t) => t.status === "confirmed").length, 0)}
+                    sub="confirmed on-chain"
+                  />
+                </div>
+
+                {nodeAgents.length === 0 && (
+                  <div className="flex flex-col items-center justify-center gap-4 py-20 text-muted-foreground">
+                    <div className="w-12 h-12 rounded-2xl bg-muted border border-border flex items-center justify-center text-xl">N</div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-foreground mb-1">no node agents yet</p>
+                      <p className="text-[12px]">
+                        create one with{" "}
+                        <code className="text-primary bg-muted px-1.5 py-0.5 rounded-md">
+                          POST http://localhost:4000/agents
+                        </code>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {nodeAgents.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70 mb-3">
+                      Node Agents
+                    </p>
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
+                      {nodeAgents.map((agent) => (
+                        <NodeAgentCard
+                          key={agent.agentId}
+                          agent={agent}
+                          selected={nodeSelected === agent.agentId}
+                          onClick={() => setNodeSelected((s) => s === agent.agentId ? null : agent.agentId)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

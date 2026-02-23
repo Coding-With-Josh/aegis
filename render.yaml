@@ -3,7 +3,7 @@ services:
     name: aegis-node
     runtime: node
     rootDir: node
-    buildCommand: npm install && npx tsc
+    buildCommand: npm install && npm rebuild better-sqlite3 && npx tsc
     startCommand: node dist/server.js
     envVars:
       - key: PORT

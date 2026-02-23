@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: aegis-node
+    runtime: node
+    rootDir: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: RPC_URL
+        value: https://api.devnet.solana.com
+      - key: KEYSTORE_PASSPHRASE
+        sync: false
+      - key: DB_PATH
+        value: ./aegis.db
+      - key: JUPITER_API_URL
+        value: https://quote-api.jup.ag/v6
+    disk:
+      name: aegis-data
+      mountPath: /opt/render/project/src/node
+      sizeGB: 1

@@ -80,6 +80,30 @@ app.get("/api/agents", async (_req, res) => {
   }
 });
 
+app.get("/api/audit/:agentId", async (req, res) => {
+  try {
+    const limit = parseInt((req.query.limit as string) ?? "50", 10);
+    const history = await readHistory(req.params.agentId, limit, MEMORY_DIR);
+    // return decision entries that have audit fields
+    const auditEntries = history.map((entry) => ({
+      ts: entry.ts,
+      agentId: entry.agentId,
+      action: entry.action,
+      reasoning: entry.reasoning,
+      sig: entry.sig ?? null,
+      rejected: entry.rejected,
+      rejectionReason: entry.rejectionReason ?? null,
+      intentHash: entry.intentHash ?? null,
+      policyHash: entry.policyHash ?? null,
+      usdValue: entry.usdValue ?? null,
+      approvalState: entry.approvalState ?? (entry.rejected ? "rejected" : "auto"),
+    }));
+    res.json({ agentId: req.params.agentId, audit: auditEntries });
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
 export function startApiServer(): void {
   app.listen(PORT, () => {
     logInfo("api server started", { port: PORT, url: `http://localhost:${PORT}` });

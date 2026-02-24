@@ -15,6 +15,8 @@ export interface PromptContext {
   riskProfile: RiskProfile;
   testProgramId?: string;
   programReady?: boolean;
+  solPriceUSD?: number;
+  maxTransferUSD?: number;
 }
 
 export function buildSystemPrompt(
@@ -75,10 +77,17 @@ export function buildUserPrompt(ctx: PromptContext): string {
     ? "\nWARNING: Balance is at or below the minimum safe floor (0.01 SOL). You MUST choose hold — do not attempt any transfers."
     : "";
 
+  const usdLine = ctx.solPriceUSD
+    ? `\nUSD value: ~$${(ctx.balanceLamports / 1e9 * ctx.solPriceUSD).toFixed(2)} (SOL price: $${ctx.solPriceUSD.toFixed(2)})`
+    : "";
+  const usdCapLine = ctx.maxTransferUSD
+    ? `\nMax transfer USD cap: $${ctx.maxTransferUSD.toFixed(2)}`
+    : "";
+
   return `Current wallet state:
 Agent: ${ctx.agentId}
-SOL balance: ${solBalance} SOL (${ctx.balanceLamports} lamports)
-Max allowed per tx: ${maxLamports} lamports (${(ctx.riskProfile.maxPct * 100).toFixed(0)}%)
+SOL balance: ${solBalance} SOL (${ctx.balanceLamports} lamports)${usdLine}
+Max allowed per tx: ${maxLamports} lamports (${(ctx.riskProfile.maxPct * 100).toFixed(0)}%)${usdCapLine}
 Step: ${ctx.step}${programLine}${balanceWarning}
 
 Allowed peer addresses (ONLY send to these):

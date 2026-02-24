@@ -8,6 +8,7 @@ export interface ExecutionPolicy {
   allowedRecipients: Set<string>;
   allowedProgramIds: Set<string>;
   maxTransferLamports: number;
+  maxTransferUSD?: number;
 }
 
 function toSet(keys: PublicKey[]): Set<string> {

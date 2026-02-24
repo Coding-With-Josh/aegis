@@ -17,6 +17,23 @@ import { getKeypair } from "../keystore/index.js";
 import type { Intent } from "../agents/intents.js";
 import { validateIntent, type ExecutionPolicy } from "./policy.js";
 
+const SOL_MINT = "So11111111111111111111111111111111111111112";
+
+// lightweight oracle fetch — tries coingecko, returns 0 on failure
+async function getSolPriceUSD(): Promise<number> {
+  try {
+    const res = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd",
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (!res.ok) return 0;
+    const data = await res.json() as { solana?: { usd?: number } };
+    return data.solana?.usd ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 const DEFAULT_KEYSTORE_DIR = ".aegis/keystore";
 
 export interface ExecuteOptions {
@@ -39,6 +56,19 @@ export async function executeIntent(
 
   if (opts.policy) {
     validateIntent(intent, opts.policy);
+
+    // usd cap check for transfer intents
+    if (opts.policy.maxTransferUSD !== undefined && intent.type === "transfer") {
+      const solPrice = await getSolPriceUSD();
+      if (solPrice > 0) {
+        const usdValue = (intent.lamports / 1e9) * solPrice;
+        if (usdValue > opts.policy.maxTransferUSD) {
+          throw new Error(
+            `transfer value $${usdValue.toFixed(2)} exceeds maxTransferUSD $${opts.policy.maxTransferUSD.toFixed(2)}`
+          );
+        }
+      }
+    }
   }
 
   const signer = await getKeypair(agentId, passphrase, keystoreDir);

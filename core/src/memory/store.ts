@@ -15,6 +15,10 @@ export interface DecisionEntry {
   rejected: boolean;
   rejectionReason?: string;
   balanceLamports?: number;
+  intentHash?: string;
+  policyHash?: string;
+  usdValue?: number;
+  approvalState?: "auto" | "approved" | "rejected" | "pending";
 }
 
 function memPath(agentId: string, memDir: string): string {

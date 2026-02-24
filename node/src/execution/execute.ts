@@ -9,7 +9,8 @@ import { insertTransaction, updateAgentActivity, updateReputation } from "../db.
 import { getKeypairForAgent } from "../agents/create.js";
 import { recordSpend } from "../spend/tracker.js";
 import type { AgentRow } from "../db.js";
-import type { SimulationResult } from "./simulate.js";
+import type { SimulationReport } from "./simulate.js";
+// SimulationResult is an alias of SimulationReport, kept for compatibility
 
 export interface ExecutionReceipt {
   signature: string;
@@ -28,7 +29,10 @@ export async function executeTransaction(
     reasoning: string;
     amountSOL: number;
     mint: string;
-    simulation: SimulationResult | null;
+    simulation: SimulationReport | null;
+    policyHash?: string;
+    intentHash?: string;
+    usdValue?: number;
   }
 ): Promise<ExecutionReceipt> {
   const keypair = getKeypairForAgent(agent.encrypted_private_key);
@@ -50,7 +54,7 @@ export async function executeTransaction(
     slot = txInfo?.slot ?? 0;
   }
 
-  const gasUsed = meta.simulation?.unitsConsumed ?? 0;
+  const gasUsed = meta.simulation?.computeUnitForecast ?? 0;
   const tokenChanges = meta.simulation?.tokenChanges ?? [];
   const postBalances = meta.simulation?.postBalances ?? [];
 
@@ -65,6 +69,9 @@ export async function executeTransaction(
     token_mint: meta.mint,
     status: "confirmed",
     created_at: new Date().toISOString(),
+    policy_hash: meta.policyHash ?? null,
+    intent_hash: meta.intentHash ?? null,
+    usd_value: meta.usdValue ?? null,
   });
 
   recordSpend(agent.id, meta.amountSOL, meta.mint);

@@ -9,6 +9,13 @@ export interface AgentPolicy {
   maxRiskScore?: number;
 }
 
+export interface USDPolicy {
+  maxTransactionUSD?: number;
+  maxDailyExposureUSD?: number;
+  maxPortfolioExposurePercentage?: number;
+  maxDrawdownUSD?: number;
+}
+
 export interface AgentTransaction {
   id: string;
   agent_id: string;
@@ -20,16 +27,22 @@ export interface AgentTransaction {
   token_mint: string | null;
   status: "confirmed" | "rejected_policy" | "rejected_simulation" | "failed";
   created_at: string;
+  policy_hash: string | null;
+  intent_hash: string | null;
+  usd_value: number | null;
 }
 
 export interface AgentInfo {
   agentId: string;
   publicKey: string;
   status: "active" | "paused" | "suspended";
+  executionMode: "autonomous" | "supervised";
   createdAt: string;
   lastActivityAt: string | null;
   reputationScore: number;
   policy: AgentPolicy;
+  usdPolicy: USDPolicy | null;
+  webhookUrl: string | null;
 }
 
 export interface AgentBalance {
@@ -42,6 +55,55 @@ export interface AgentBalance {
     usdc: number;
     date: string;
   };
+}
+
+export interface CapitalLedger {
+  agentId: string;
+  totalInjectedUSD: number;
+  realizedPnlUSD: number;
+  unrealizedExposureUSD: number;
+  agentROI: number;
+  totalTxCount: number;
+  totalVolumeUSD: number;
+}
+
+export interface AuditArtifact {
+  id: string;
+  agentId: string;
+  intent: { type: string; params: Record<string, unknown> };
+  intentHash: string;
+  policyHash: string;
+  usdRiskCheck: {
+    usdValue: number;
+    passed: boolean;
+    violations: string[];
+  } | null;
+  simulationResult: unknown | null;
+  approvalState: "auto" | "approved" | "rejected" | "pending";
+  finalTxSignature: string | null;
+  timestamp: string;
+}
+
+export interface PendingTransaction {
+  id: string;
+  agentId: string;
+  intent: { type: string; params: Record<string, unknown> };
+  intentHash: string;
+  policyHash: string;
+  reasoning: string | null;
+  usdValue: number | null;
+  simulation: unknown | null;
+  status: "awaiting_approval" | "approved" | "rejected" | "expired";
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface PolicyVersion {
+  agent_id: string;
+  version: number;
+  policy_hash: string;
+  policy_json: string;
+  created_at: string;
 }
 
 export interface CreateAgentResult {

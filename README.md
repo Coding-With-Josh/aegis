@@ -6,9 +6,9 @@ three layers:
 
 ```
 aegis/
-  core/   the OG engine. wallet factory, encrypted keystore, LLM agents, execution layer, CLI, API
-  node/   the product. structured intent execution infrastructure. policy engine, simulation, spend tracking
-  sdk/    @aegis-ai/sdk. TypeScript client for the node API. typed intents, AegisClient, intent builders
+  core/   the OG engine. wallet factory, encrypted keystore, LLM agents, execution layer, CLI, API. optional USD cap and audit fields on decisions
+  node/   the product. structured intent execution, policy engine, simulation, spend tracking, USD risk, capital ledger, HITL, audit trail
+  sdk/    @aegis-ai/sdk. TypeScript client for the node API. typed intents, capital/audit/pending methods
   web/    Next.js dashboard. watch both layers do their thing in real time
 ```
 
@@ -16,7 +16,7 @@ aegis/
 
 you spin up agents. each gets its own Solana keypair, encrypted and stored locally. a scheduler runs every 30s. each agent asks an LLM (Groq or OpenAI) what to do with its wallet this cycle. the LLM returns a JSON intent. aegis validates it against a policy, signs the transaction, and fires it on-chain. the agent never touches the private key.
 
-the `node/` layer goes further. external agents (or anything with an HTTP client) send **structured intents** to the API. aegis owns the full execution path — builds the transaction, simulates it, enforces policy, signs, sends, and logs everything. agents can't sneak in hidden instructions or drain wallets. it's deterministic execution infrastructure, not a signing proxy.
+the `node/` layer goes further. external agents (or anything with an HTTP client) send **structured intents** to the API. aegis owns the full execution path — builds the transaction, simulates it, enforces policy (including optional USD caps), signs, sends, and logs everything. agents can't sneak in hidden instructions or drain wallets. optional supervised mode queues transactions for human approve/reject. every execution is written to an audit trail. deterministic execution infrastructure, not a signing proxy.
 
 three agent personalities in `core/` run round-robin:
 - **Sentinel** paranoid capital preserver. temp 0.1, max 10% per tx, never touches programs
@@ -114,9 +114,47 @@ curl https://aegis-ycdm.onrender.com/agents/<id>
 
 # transaction history
 curl https://aegis-ycdm.onrender.com/agents/<id>/transactions
+
+# capital ledger (v3)
+curl -H "x-api-key: <apiKey>" https://aegis-ycdm.onrender.com/agents/<id>/capital
+curl -H "x-api-key: <apiKey>" https://aegis-ycdm.onrender.com/agents/<id>/capital/export
+
+# log a funding event
+curl -X POST https://aegis-ycdm.onrender.com/agents/<id>/funding \
+  -H "x-api-key: <apiKey>" \
+  -H "Content-Type: application/json" \
+  -d '{"amountSol": 1, "amountUsd": 150, "sourceNote": "bank transfer"}'
+
+# list pending (supervised mode), approve or reject
+curl -H "x-api-key: <apiKey>" https://aegis-ycdm.onrender.com/agents/<id>/pending
+curl -X PATCH https://aegis-ycdm.onrender.com/agents/<id>/pending/<pendingId>/approve -H "x-api-key: <apiKey>"
+curl -X PATCH https://aegis-ycdm.onrender.com/agents/<id>/pending/<pendingId>/reject -H "x-api-key: <apiKey>"
+
+# audit log and export
+curl https://aegis-ycdm.onrender.com/agents/<id>/audit?limit=20
+curl https://aegis-ycdm.onrender.com/agents/<id>/audit/export
+
+# set execution mode (autonomous vs supervised)
+curl -X PATCH https://aegis-ycdm.onrender.com/agents/<id>/execution-mode \
+  -H "x-api-key: <apiKey>" \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "supervised"}'
 ```
 
-save the `apiKey` from agent creation — it's shown once and stored hashed.
+create with optional v3 options:
+
+```bash
+curl -X POST https://aegis-ycdm.onrender.com/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "policy": {"maxTxAmountSOL": 1, "dailySpendLimitSOL": 5},
+    "usdPolicy": {"maxTransactionUSD": 500, "maxDailyExposureUSD": 2000},
+    "webhookUrl": "https://your-app.com/webhook",
+    "executionMode": "autonomous"
+  }'
+```
+
+save the `apiKey` from agent creation; it's shown once and stored hashed.
 
 ## structured intents
 
@@ -178,7 +216,7 @@ aegis handles everything else. routing, ATAs, compute budgets, simulation, signi
 
 ## policy engine
 
-every agent has a policy stored in the DB. checked before the transaction is built:
+every agent has a policy (and optional USD policy) stored in the DB. checked before the transaction is built:
 
 ```json
 {
@@ -193,7 +231,9 @@ every agent has a policy stored in the DB. checked before the transaction is bui
 }
 ```
 
-checks run in order: intent type → mint → tx amount → daily spend → cooldown → risk score → slippage (swaps only). all violations are collected and returned together. if simulation is required and the transaction would drop the agent's SOL below 0.01 or produce a negative token delta, it's rejected before hitting the chain.
+optional USD policy (separate, set on create or `PATCH /agents/:id/usd-policy`): `maxTransactionUSD`, `maxDailyExposureUSD`, `maxPortfolioExposurePercentage`, `maxDrawdownUSD`. agents can also have `executionMode`: `autonomous` (default) or `supervised`, and an optional `webhookUrl` for low-balance and pending-approval events.
+
+checks run in order: intent type, mint, tx amount, daily spend, cooldown, risk score, slippage (swaps only), then USD rules if a USD policy is set. all violations are collected and returned together. if simulation is required and the transaction would drop the agent's SOL below 0.01 or produce a negative token delta, it's rejected before hitting the chain.
 
 pass a custom policy when creating an agent:
 
@@ -215,6 +255,24 @@ every agent has a `reputationScore` starting at `1.0` (max `10.0`, min `0`):
 
 visible in `GET /agents/:id` and on the dashboard. agents that keep getting rejected drift toward zero.
 
+## capital-aware layer (v3)
+
+the node (and core where it fits) adds deterministic, treasury-style execution on top of the intent engine.
+
+**usd risk** - all exposure is normalized to fiat. oracle layer (Pyth first, CoinGecko fallback, 30s cache) feeds a valuation engine. policies can set `maxTransactionUSD`, `maxDailyExposureUSD`, `maxPortfolioExposurePercentage`, `maxDrawdownUSD`. checked before build and after simulation. core gets `maxTransferUSD` on the execution policy and USD context in the LLM prompt.
+
+**fiat awareness** - capital ledger tracks total injected USD, realized P&L, unrealized exposure, agent ROI. low balance below `minOperationalUSD` triggers a funding signal (and optional webhook). `POST /agents/:id/funding` logs off-chain funding events. `GET /agents/:id/capital` returns the ledger; `GET /agents/:id/capital/export` returns a CSV for accounting.
+
+**simulation v2** - every execution path runs through the sim engine. report includes `computeUnitForecast`, `slippageActual`, `expectedDeltaViolation`, `usdImpactEstimate`. risky effects (SOL floor, negative token deltas) still reject before sign.
+
+**policy hashing** - every policy and every intent gets a deterministic hash. transactions and audit rows store `policyHash`, `intentHash`, `policy_version`. `policy_versions` table keeps a history. proves execution under a specific governance snapshot.
+
+**human-in-the-loop** — agents can run `autonomous` or `supervised`. in supervised mode the server builds and simulates the tx, stores it as pending, and returns `202` with a `pendingId`. you approve or reject via `PATCH /agents/:id/pending/:txId/approve` or `.../reject`. optional webhook on the agent fires when something is awaiting approval. pending rows expire after 24h; a background job marks them expired.
+
+**audit trail** - every execution (success, reject, or fail) writes a structured artifact: `agentId`, `intent`, `intentHash`, `policyHash`, `usdRiskCheck`, `simulationResult`, `approvalState`, `finalTxSignature`, `timestamp`. `GET /agents/:id/audit` and `GET /agents/:id/audit/export` for replay and compliance. core decision entries and `/api/audit/:agentId` expose the same idea for the LLM layer.
+
+together this turns aegis from a wallet execution layer into deterministic, capital-aware execution middleware. the SDK exposes `USDPolicy`, `getCapital`, `getAuditLog`, `exportAudit`, `getPendingTransactions`, `approvePending`, `rejectPending`, `setExecutionMode`.
+
 ## @aegis-ai/sdk
 
 the `sdk/` package is a typed TypeScript client for the node API. no raw `fetch` calls, no guessing field names.
@@ -227,20 +285,35 @@ const client = new AegisClient({
   apiKey: "your-api-key",
 });
 
-// create an agent
+// create an agent (optionally with USD policy, webhook, execution mode)
 const { agentId, apiKey } = await client.createAgent({
   policy: { maxTxAmountSOL: 0.5, dailySpendLimitSOL: 2 },
+  usdPolicy: { maxTransactionUSD: 500, maxDailyExposureUSD: 2000 },
+  executionMode: "autonomous",
 });
 
-// execute intents using typed builders
+// execute intents using typed builders. returns receipt or { status: "awaiting_approval", pendingId } in supervised mode
 await client.execute(agentId, transfer({ to: "<address>", amount: 0.1 }), "rebalancing");
 await client.execute(agentId, swap({ fromMint: "SOL", toMint: "USDC", amount: 0.5 }), "spread detected");
 await client.execute(agentId, stake({ amount: 1, voteAccount: "<vote_account>" }), "earning yield");
 
 // read state
 const balance = await client.getBalance(agentId);
-const agent = await client.getAgent(agentId);   // includes reputationScore, lastActivityAt
+const agent = await client.getAgent(agentId);   // includes reputationScore, lastActivityAt, usdPolicy, executionMode
 const txs = await client.getTransactions(agentId, 20);
+
+// capital and audit (v3)
+const capital = await client.getCapital(agentId);
+const csv = await client.exportAccounting(agentId);
+await client.logFunding(agentId, { amountSol: 1, amountUsd: 150, sourceNote: "bank" });
+const { audit } = await client.getAuditLog(agentId, 50);
+const auditJson = await client.exportAudit(agentId);
+
+// pending and execution mode (v3)
+const { pending } = await client.getPendingTransactions(agentId);
+await client.approvePending(agentId, pendingId);
+await client.rejectPending(agentId, pendingId);
+await client.setExecutionMode(agentId, "supervised");
 
 // pause the agent
 await client.updateStatus(agentId, "paused");
@@ -260,6 +333,7 @@ errors throw `AegisError` with a `violations` array when the policy engine rejec
 | `OPENAI_API_KEY` | one of | OpenAI key, used if no Groq key |
 | `AEGIS_TEST_PROGRAM_ID` | no | deployed Anchor program ID. agents skip `callProgram` without this |
 | `MAX_TRANSFER_LAMPORTS` | no | max lamports per transfer. defaults to 1 SOL |
+| `MAX_TRANSFER_USD` | no | if set, core checks SOL transfer value in USD via CoinGecko before executing |
 | `LLM_INTERVAL_MS` | no | scheduler tick interval. defaults to 30000ms |
 | `API_PORT` | no | monitoring API port. defaults to 5000 |
 

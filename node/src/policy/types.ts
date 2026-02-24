@@ -9,6 +9,13 @@ export interface AgentPolicy {
   maxRiskScore?: number;
 }
 
+export interface USDPolicy {
+  maxTransactionUSD?: number;
+  maxDailyExposureUSD?: number;
+  maxPortfolioExposurePercentage?: number;
+  maxDrawdownUSD?: number;
+}
+
 export interface PolicyViolation {
   code: string;
   message: string;

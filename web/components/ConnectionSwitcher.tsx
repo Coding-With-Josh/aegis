@@ -14,12 +14,16 @@ export default function ConnectionSwitcher({ preset, config, onChange }: Props) 
   const [expanded, setExpanded] = useState(false);
 
   function selectPreset(key: PresetKey) {
-    onChange(key, { coreUrl: PRESETS[key].coreUrl, nodeUrl: PRESETS[key].nodeUrl });
+    onChange(key, { ...PRESETS[key], nodeApiKey: config.nodeApiKey });
     setExpanded(false);
   }
 
   function updateUrl(field: keyof ConnectionConfig, value: string) {
     onChange("custom", { ...config, [field]: value });
+  }
+
+  function updateApiKey(value: string) {
+    onChange(preset, { ...config, nodeApiKey: value || undefined });
   }
 
   const isOnline = preset === "deployed";
@@ -83,6 +87,16 @@ export default function ConnectionSwitcher({ preset, config, onChange }: Props) 
                   value={config.nodeUrl}
                   onChange={(e) => updateUrl("nodeUrl", e.target.value)}
                   className="w-full text-[10px] bg-background border border-border/50 rounded px-2 py-1 text-foreground font-mono focus:outline-none focus:border-primary/50"
+                />
+              </div>
+              <div>
+                <p className="text-[9px] text-muted-foreground/60 uppercase tracking-wide mb-0.5">node API key (for approve/reject)</p>
+                <input
+                  type="password"
+                  placeholder="optional"
+                  value={config.nodeApiKey ?? ""}
+                  onChange={(e) => updateApiKey(e.target.value)}
+                  className="w-full text-[10px] bg-background border border-border/50 rounded px-2 py-1 text-foreground font-mono focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/50"
                 />
               </div>
             </div>

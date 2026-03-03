@@ -22,7 +22,9 @@ export interface SimulationReport {
   usdImpactEstimate: number | null;
 }
 
-// kept for backwards compat — callers that typed SimulationResult still work
+// kept for backwards compatibility, callers that typed SimulationResult still work... 
+// don't ask why 😂 I was feeling funkyyyy 😂
+
 export type SimulationResult = SimulationReport;
 
 const SOL_FLOOR_LAMPORTS = 10_000_000;

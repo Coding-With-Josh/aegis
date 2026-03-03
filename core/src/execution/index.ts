@@ -57,7 +57,7 @@ export async function executeIntent(
   if (opts.policy) {
     validateIntent(intent, opts.policy);
 
-    // usd cap check for transfer intents
+    // usd cap check for transfer intents 😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝😝
     if (opts.policy.maxTransferUSD !== undefined && intent.type === "transfer") {
       const solPrice = await getSolPriceUSD();
       if (solPrice > 0) {

@@ -149,7 +149,7 @@ curl -X POST https://aegis-ycdm.onrender.com/agents \
   -d '{
     "policy": {"maxTxAmountSOL": 1, "dailySpendLimitSOL": 5},
     "usdPolicy": {"maxTransactionUSD": 500, "maxDailyExposureUSD": 2000},
-    "webhookUrl": "https://your-app.com/webhook",
+    "webhookUrl": "https://aegis-ycdm.onrender.com/webhook",
     "executionMode": "autonomous"
   }'
 ```

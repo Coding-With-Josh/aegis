@@ -3,6 +3,7 @@
 export interface ConnectionConfig {
   coreUrl: string;
   nodeUrl: string;
+  nodeApiKey?: string;
 }
 
 export const PRESETS = {

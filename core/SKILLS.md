@@ -32,7 +32,7 @@ Example intents:
 - `npm run balance` - show SOL balances per agent
 - `npm run init-test-program` - initialize test program counter (after deploy)
 - `npm run init-trades` - initialize DeFi trade state (after deploy, for scripted trades)
-- `npm run spl-setup` - create SPL mint and mint tokens to agent_0 (hold SPL)
+- `npm run spl-setup` - create SPL mint and mint tokens to all agents (use -a <id> for single recipient)
 - `npm run spl-transfer` - transfer SPL between agents
 - `npm run demo` - run 2 rounds + balance
 

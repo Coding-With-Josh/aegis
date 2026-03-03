@@ -9,6 +9,51 @@ export interface NodeAgentPolicy {
   maxRiskScore?: number;
 }
 
+export interface SimulationReport {
+  success: boolean;
+  error: string | null;
+  logs: string[];
+  computeUnitForecast: number;
+  tokenChanges: { mint: string; delta: number; owner: string }[];
+  postBalances: { address: string; lamports: number }[];
+  slippageActual: number | null;
+  expectedDeltaViolation: boolean;
+  riskyEffects: boolean;
+  riskReason: string | null;
+  usdImpactEstimate: number | null;
+}
+
+export interface PendingTxSummary {
+  id: string;
+  agentId: string;
+  intent: { type: string; params: Record<string, unknown> };
+  intentHash: string;
+  policyHash: string;
+  reasoning: string | null;
+  usdValue: number | null;
+  simulation: SimulationReport | null;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  agentId: string;
+  intent: { type: string; params: Record<string, unknown> };
+  intentHash: string;
+  policyHash: string;
+  usdRiskCheck: {
+    usdValue: number;
+    passed: boolean;
+    violations: string[];
+  } | null;
+  simulationResult: SimulationReport | null;
+  approvalState: "auto" | "approved" | "rejected" | "pending";
+  finalTxSignature: string | null;
+  timestamp: string;
+}
+
 export interface NodeTransaction {
   id: string;
   agent_id: string;
@@ -26,6 +71,7 @@ export interface NodeAgentState {
   agentId: string;
   publicKey: string;
   status: string;
+  executionMode?: string;
   createdAt: string;
   lastActivityAt: string | null;
   reputationScore: number;
@@ -33,6 +79,7 @@ export interface NodeAgentState {
   balanceSol: number;
   dailySpend: { sol: number; usdc: number; date: string };
   recentTxs: NodeTransaction[];
+  pending: PendingTxSummary[];
 }
 
 export interface RiskProfile {

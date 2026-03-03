@@ -34,7 +34,11 @@ export default function Dashboard() {
   useEffect(() => {
     const saved = loadConfig();
     setConnectionPreset(saved.preset);
-    setConnectionConfig({ coreUrl: saved.coreUrl, nodeUrl: saved.nodeUrl });
+    setConnectionConfig({
+      coreUrl: saved.coreUrl,
+      nodeUrl: saved.nodeUrl,
+      nodeApiKey: saved.nodeApiKey,
+    });
   }, []);
 
   function handleConnectionChange(preset: PresetKey | "custom", config: ConnectionConfig) {
@@ -218,6 +222,9 @@ export default function Dashboard() {
                           agent={agent}
                           selected={nodeSelected === agent.agentId}
                           onClick={() => setNodeSelected((s) => s === agent.agentId ? null : agent.agentId)}
+                          nodeUrl={connectionConfig.nodeUrl}
+                          nodeApiKey={connectionConfig.nodeApiKey}
+                          onRefresh={load}
                         />
                       ))}
                     </div>

@@ -134,9 +134,9 @@ config is saved to `.aegis/config/agent_0.json` and picked up on the next `run`.
 
 ### SPL tokens
 
-create a test mint, mint tokens to an agent, then transfer between agents:
+create a test mint, mint tokens to all agents, then transfer between agents:
 ```bash
-npm run spl-setup          # create mint, mint to agent_0
+npm run spl-setup          # create mint, mint to all agents (use -a <id> for a single recipient)
 npm run spl-transfer       # transfer 100 from agent_0 to agent_1 (use -f/-t/-n to customize)
 ```
 
@@ -176,7 +176,7 @@ with `.env` configured (`KEYSTORE_PASSPHRASE`, and optionally `AEGIS_TEST_PROGRA
 npm install && npm run build
 npm run create-wallets -- --agents 3
 npm run airdrop             # if airdrops failed during create-wallets
-npm run spl-setup           # SPL: mint + hold
+npm run spl-setup           # SPL: mint + mint to all agents
 npm run spl-transfer        # SPL: transfer between agents
 npm run init-test-program   # if test program deployed
 npm run init-trades         # if test program deployed (for DeFi scripted trades)

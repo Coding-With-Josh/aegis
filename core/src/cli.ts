@@ -387,21 +387,45 @@ program
 
 program
   .command("spl-setup")
-  .description("create test SPL mint and mint tokens to agent_0")
-  .addOption(new Option("-a, --agent <id>", "agent to be mint authority and receive tokens").default("agent_0"))
-  .addOption(new Option("-n, --amount <n>", "tokens to mint").argParser(Number).default(1000))
-  .action(async (opts: { agent: string; amount: number }) => {
+  .description("create test SPL mint and mint tokens to all agents (or one with -a)")
+  .addOption(new Option("-a, --agent <id>", "mint authority and sole recipient when not using all agents (default: all)"))
+  .addOption(new Option("--all", "mint to every agent in .aegis/meta (default)"))
+  .addOption(new Option("-n, --amount <n>", "tokens to mint per agent").argParser(Number).default(1000))
+  .action(async (opts: { agent?: string; all?: boolean; amount: number }) => {
     if (!PASSPHRASE) {
       logError("KEYSTORE_PASSPHRASE not set in .env");
       process.exit(1);
     }
-    const signer = await getKeypair(opts.agent, PASSPHRASE, KEYSTORE_DIR);
+    const meta = await loadMetadata(META_DIR);
+    if (meta.length === 0) {
+      logError("no agents in meta", { hint: "run create-wallets first" });
+      process.exit(1);
+    }
+    const useAll = opts.all !== false && !opts.agent;
+    const authorityId = opts.agent ?? meta[0].agentId;
+    const authorityMeta = meta.find((m) => m.agentId === authorityId);
+    if (!authorityMeta) {
+      logError("agent not found", { agent: authorityId });
+      process.exit(1);
+    }
+    const signer = await getKeypair(authorityId, PASSPHRASE, KEYSTORE_DIR);
     const c = conn();
     const mint = await createMint(c, signer, signer.publicKey, null, 6, undefined, { commitment: "confirmed" });
     await saveSplMint(mint.toBase58(), META_DIR);
-    const ataAddress = await createAssociatedTokenAccountIdempotent(c, signer, mint, signer.publicKey, { commitment: "confirmed" });
-    await mintTo(c, signer, mint, ataAddress, signer, opts.amount, [], { commitment: "confirmed" });
-    logInfo("SPL mint created", { mint: mint.toBase58(), mintedTo: opts.agent, amount: opts.amount });
+
+    if (useAll) {
+      for (const m of meta) {
+        const owner = new PublicKey(m.publicKey);
+        const ata = await createAssociatedTokenAccountIdempotent(c, signer, mint, owner, { commitment: "confirmed" });
+        await mintTo(c, signer, mint, ata, signer, opts.amount, [], { commitment: "confirmed" });
+        logInfo("SPL minted to agent", { agentId: m.agentId, amount: opts.amount });
+      }
+      logInfo("SPL mint created, minted to all agents", { mint: mint.toBase58(), agents: meta.length, amountPerAgent: opts.amount });
+    } else {
+      const ataAddress = await createAssociatedTokenAccountIdempotent(c, signer, mint, signer.publicKey, { commitment: "confirmed" });
+      await mintTo(c, signer, mint, ataAddress, signer, opts.amount, [], { commitment: "confirmed" });
+      logInfo("SPL mint created", { mint: mint.toBase58(), mintedTo: authorityId, amount: opts.amount });
+    }
   });
 
 program

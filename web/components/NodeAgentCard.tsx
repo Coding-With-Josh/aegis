@@ -1,12 +1,17 @@
 "use client";
 
-import type { NodeAgentState, NodeTransaction } from "@/lib/types";
+import type { NodeAgentState, NodeTransaction, PendingTxSummary } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import PendingApprovals from "./PendingApprovals";
+import AuditLogView from "./AuditLogView";
 
 interface Props {
   agent: NodeAgentState;
   selected: boolean;
   onClick: () => void;
+  nodeUrl?: string;
+  nodeApiKey?: string;
+  onRefresh?: () => void;
 }
 
 function statusColor(status: string) {
@@ -42,9 +47,11 @@ function TxRow({ tx }: { tx: NodeTransaction }) {
   );
 }
 
-export default function NodeAgentCard({ agent, selected, onClick }: Props) {
+export default function NodeAgentCard({ agent, selected, onClick, nodeUrl, nodeApiKey, onRefresh }: Props) {
   const isActive = agent.status === "active";
   const shortKey = `${agent.publicKey.slice(0, 4)}...${agent.publicKey.slice(-4)}`;
+  const pending: PendingTxSummary[] = agent.pending ?? [];
+  const awaitingCount = pending.filter((p) => p.status === "awaiting_approval").length;
 
   return (
     <div
@@ -74,6 +81,11 @@ export default function NodeAgentCard({ agent, selected, onClick }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          {agent.executionMode === "supervised" && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 border border-amber-500/30">
+              supervised
+            </span>
+          )}
           <div
             className="w-1.5 h-1.5 rounded-full shrink-0"
             style={{
@@ -145,7 +157,7 @@ export default function NodeAgentCard({ agent, selected, onClick }: Props) {
       )}
 
       {selected && agent.recentTxs.length > 0 && (
-        <div>
+        <div onClick={(e) => e.stopPropagation()}>
           <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wide font-semibold mb-1.5">recent transactions</div>
           <div className="rounded-lg border border-border/50 bg-muted/30 px-2 py-1">
             {agent.recentTxs.slice(0, 5).map((tx) => (
@@ -155,8 +167,34 @@ export default function NodeAgentCard({ agent, selected, onClick }: Props) {
         </div>
       )}
 
-      {selected && agent.recentTxs.length === 0 && (
-        <div className="text-[11px] text-muted-foreground text-center py-2">no transactions yet</div>
+      {selected && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wide font-semibold mb-1.5">
+            pending approvals {awaitingCount > 0 ? `(${awaitingCount})` : ""}
+          </div>
+          {nodeUrl && onRefresh ? (
+            <PendingApprovals
+              nodeUrl={nodeUrl}
+              agentId={agent.agentId}
+              pending={pending}
+              nodeApiKey={nodeApiKey}
+              onRefresh={onRefresh}
+            />
+          ) : (
+            <div className="text-[11px] text-muted-foreground py-2">
+              {pending.length === 0 ? "no pending approvals" : "Set connection to approve/reject."}
+            </div>
+          )}
+        </div>
+      )}
+
+      {selected && nodeUrl && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wide font-semibold mb-1.5 mt-3">
+            audit log
+          </div>
+          <AuditLogView nodeUrl={nodeUrl} agentId={agent.agentId} />
+        </div>
       )}
     </div>
   );

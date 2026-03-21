@@ -1,7 +1,9 @@
 node_modules/
 dist/
 .aegis/
-.env
+# environment variables
+.env*
+!.env.example
 *.log
 .DS_Store
 test-ledger/

@@ -1,4 +1,6 @@
 node_modules/
 dist/
-.env
+# environment variables
+.env*
+!.env.example
 *.db

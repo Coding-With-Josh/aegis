@@ -1,8 +1,12 @@
-/.DS_Store
+# OS files
+.DS_Store
+
+# Environment variables
+.env*
+!.env.example
 test-ledger/
 node/node_modules/
 node/dist/
-node/.env
 node/*.db
 node/*.db-shm
 node/*.db-wal

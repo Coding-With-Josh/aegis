@@ -12,6 +12,8 @@ aegis/
   web/    Next.js dashboard. watch both layers do their thing in real time
 ```
 
+**Deep dive:** [core/DEEP_DIVE.md](core/DEEP_DIVE.md) · **Agent skills:** [SKILLS.md](SKILLS.md)
+
 ## what it does
 
 you spin up agents. each gets its own Solana keypair, encrypted and stored locally. a scheduler runs every 30s. each agent asks an LLM (Groq or OpenAI) what to do with its wallet this cycle. the LLM returns a JSON intent. aegis validates it against a policy, signs the transaction, and fires it on-chain. the agent never touches the private key.
